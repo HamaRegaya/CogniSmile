@@ -32,13 +32,11 @@ To get started with CogniSmile, follow these steps:
 
 We welcome contributions from the community to improve and expand CogniSmile's capabilities. If you're interested in contributing, please follow the guidelines outlined in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## License
 
-This project is licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-For questions or inquiries, please contact us at cognismile@example.com.
+For questions or inquiries, please contact us at cognismile@gmail.com.
 
 ---
 
