@@ -13,11 +13,10 @@ CogniSmile is an innovative project aimed at providing enhanced emotional unders
 - **Tags:** Artificial Intelligence, Machine Learning, Computer Vision, Emotion Detection
 - **Key Features:**
   - Real-time video analysis
-    ![1_11IZu1gHHnpYtHnns6ddew](https://github.com/HamaRegaya/CogniName/assets/80206931/0d059707-336f-4e45-9271-f270c64a5334)
-    
   - Emotion detection (detecting sadness, anger, etc.)
   - User-friendly interface for individuals with Down Syndrome
 - **Impact:** Improved emotional communication and interaction for people with Down Syndrome
+  ![1_11IZu1gHHnpYtHnns6ddew](https://github.com/HamaRegaya/CogniName/assets/80206931/0d059707-336f-4e45-9271-f270c64a5334)
 
 ## How It Works
 
