@@ -7,6 +7,7 @@ CogniSmile is an innovative project aimed at providing enhanced emotional unders
 - **Project Name:** CogniSmile: EmpowerAbility
 - **Purpose:** Enhancing emotional awareness and support for individuals with Down Syndrome
 - **Technology:** TensorFlow, Deep Learning, Convolutional Neural Networks (CNNs)
+- ![Technologies_used](https://github.com/HamaRegaya/CogniName/assets/80206931/13841fa6-407c-465c-b216-4f9139d4b9f1)
 - **Tags:** Artificial Intelligence, Machine Learning, Computer Vision, Emotion Detection
 - **Key Features:**
   - Real-time video analysis
