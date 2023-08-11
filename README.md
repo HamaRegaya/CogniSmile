@@ -27,7 +27,7 @@ CogniSmile employs a combination of deep learning techniques and computer vision
 To get started with CogniSmile, follow these steps:
 
 1. **Prerequisites:** Make sure you have TensorFlow and the necessary dependencies installed.
-2. **Clone the Repository:** `git clone https://github.com/yourusername/CogniSmile.git`
+2. **Clone the Repository:** `git clone https://github.com/HamaRegaya/CogniName.git`
 3. **Navigate to the Directory:** `cd CogniSmile`
 4. **Run the Application:** Execute the main script to start the real-time emotion detection.
 5. **Interact:** Use the user-friendly interface to view emotional feedback.
