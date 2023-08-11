@@ -214,9 +214,10 @@ li span{
 }
 
 
-.cardContent .cardBtn{
+.cardContent .cardBtn {
     position: absolute;
     right: 20px;
+    top: -10px; /* Adjust the top value as needed to raise the button */
     padding: 10px;
     background-color: #ededed;
     width: 25px;
@@ -228,8 +229,9 @@ li span{
     transition: all ease-in-out 0.2s;
 }
 
+
 .cardContent .cardBtn:hover{
-  background-color: #2f8be0;
+  background-color: #d1e02f;
 }
 
 .cardContent .cardBtn .cardIcon{
