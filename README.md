@@ -1,8 +1,8 @@
-![Healthcare](https://github.com/HamaRegaya/CogniName/assets/80206931/b516f8cf-5670-4159-8842-747e01c52ede)
-
 # CogniSmile: EmpowerAbility - AI-Assisted Support for Individuals with Down Syndrome
 
 CogniSmile is an innovative project aimed at providing enhanced emotional understanding and support for individuals with Down Syndrome through the use of AI and real-time video analysis. The project leverages TensorFlow's deep learning capabilities and Convolutional Neural Networks (CNNs) to detect emotions in real-time videos, helping individuals with Down Syndrome better perceive the emotions of those around them, especially when others are feeling sad or angry.
+
+![Healthcare](https://github.com/HamaRegaya/CogniName/assets/80206931/b516f8cf-5670-4159-8842-747e01c52ede)
 
 ## Project Overview
 
