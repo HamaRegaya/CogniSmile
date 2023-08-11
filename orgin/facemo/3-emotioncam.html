@@ -1,18 +1,57 @@
 <html>
     <head>
         <title>Real-Time Facial Emotion Detection</title>
+        <link rel="stylesheet" href="../styles.css">
+        <link rel="stylesheet" href="loading.css">
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0/dist/tf.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+        <style>
+            #output {
+                transform: scaleX(-1); /* Mirror video */
+                border: 2px solid #409de8;
+                background-color: #ffffff;
+            }
+    
+            #status {
+                text-align: center;
+                margin-top: 20px;
+                font-size: 24px;
+                color: #333333;
+            }
+    
+            video {
+                display: none; /* Hide video element */
+            }
+        </style>
     </head>
     <body>
+        <div class="nav">
+            <div class="logo">
+                <h4>MetaMinds...</h4>
+            </div>
+            <div class="links">
+                <a href="#" class="mainlink">Home</a>
+                <a href="#">Help!</a>
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+            </div>
+        </div>
         <canvas id="output"></canvas>
-        <video id="webcam" playsinline style="
-            visibility: hidden;
-            width: auto;
-            height: auto;
-            ">
-        </video>
-        <h1 id="status">Loading...</h1>
+        <video id="webcam" playsinline></video>
+        <h1 id="status"><svg class="pl" viewBox="0 0 200 200" width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="pl-grad1" x1="1" y1="0.5" x2="0" y2="0.5">
+                    <stop offset="0%" stop-color="hsl(313,90%,55%)" />
+                    <stop offset="100%" stop-color="hsl(223,90%,55%)" />
+                </linearGradient>
+                <linearGradient id="pl-grad2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="hsl(313,90%,55%)" />
+                    <stop offset="100%" stop-color="hsl(223,90%,55%)" />
+                </linearGradient>
+            </defs>
+            <circle class="pl__ring" cx="100" cy="100" r="82" fill="none" stroke="url(#pl-grad1)" stroke-width="36" stroke-dasharray="0 257 1 257" stroke-dashoffset="0.01" stroke-linecap="round" transform="rotate(-90,100,100)" />
+            <line class="pl__ball" stroke="url(#pl-grad2)" x1="100" y1="18" x2="100.01" y2="182" stroke-width="36" stroke-dasharray="1 165" stroke-linecap="round" />
+        </svg></h1>
         <script>
         function setText( text ) {
             document.getElementById( "status" ).innerText = text;
