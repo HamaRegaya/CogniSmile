@@ -1,0 +1,14 @@
+{
+    "name": "emotion-detection-app",
+    "version": "1.0.0",
+    "description": "Real-Time Facial Emotion Detection App",
+    "dependencies": {
+      "@tensorflow/tfjs": "2.4.0",
+      "@tensorflow-models/face-landmarks-detection": "0.0.1",
+      "express": "^4.17.1"
+
+   },
+    "scripts": {
+    }
+  }
+  

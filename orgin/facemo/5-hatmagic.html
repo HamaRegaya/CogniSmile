@@ -1,0 +1,195 @@
+<html>
+    <head>
+        <title>Building a Magical Emotion Detection Hat</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0/dist/tf.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+    </head>
+    <body>
+        <canvas id="output"></canvas>
+        <video id="webcam" playsinline style="
+            visibility: hidden;
+            width: auto;
+            height: auto;
+            ">
+        </video>
+        <h1 id="status">Loading...</h1>
+        <img id="hat-angry" src="web/hats/angry.png" style="visibility: hidden;" />
+        <img id="hat-disgust" src="web/hats/disgust.png" style="visibility: hidden;" />
+        <img id="hat-fear" src="web/hats/fear.png" style="visibility: hidden;" />
+        <img id="hat-happy" src="web/hats/happy.png" style="visibility: hidden;" />
+        <img id="hat-neutral" src="web/hats/neutral.png" style="visibility: hidden;" />
+        <img id="hat-sad" src="web/hats/sad.png" style="visibility: hidden;" />
+        <img id="hat-surprise" src="web/hats/surprise.png" style="visibility: hidden;" />
+        <script>
+        function setText( text ) {
+            document.getElementById( "status" ).innerText = text;
+        }
+
+        function drawLine( ctx, x1, y1, x2, y2 ) {
+            ctx.beginPath();
+            ctx.moveTo( x1, y1 );
+            ctx.lineTo( x2, y2 );
+            ctx.stroke();
+        }
+
+        async function setupWebcam() {
+            return new Promise( ( resolve, reject ) => {
+                const webcamElement = document.getElementById( "webcam" );
+                const navigatorAny = navigator;
+                navigator.getUserMedia = navigator.getUserMedia ||
+                navigatorAny.webkitGetUserMedia || navigatorAny.mozGetUserMedia ||
+                navigatorAny.msGetUserMedia;
+                if( navigator.getUserMedia ) {
+                    navigator.getUserMedia( { video: true },
+                        stream => {
+                            webcamElement.srcObject = stream;
+                            webcamElement.addEventListener( "loadeddata", resolve, false );
+                        },
+                    error => reject());
+                }
+                else {
+                    reject();
+                }
+            });
+        }
+
+        const emotions = [ "angry", "disgust", "fear", "happy", "neutral", "sad", "surprise" ];
+        let emotionModel = null;
+
+        let output = null;
+        let model = null;
+
+        let currentEmotion = "neutral";
+        let hat = { scale: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
+
+        async function predictEmotion( points ) {
+            let result = tf.tidy( () => {
+                const xs = tf.stack( [ tf.tensor1d( points ) ] );
+                return emotionModel.predict( xs );
+            });
+            let prediction = await result.data();
+            result.dispose();
+            // Get the index of the maximum value
+            let id = prediction.indexOf( Math.max( ...prediction ) );
+            return emotions[ id ];
+        }
+
+        async function trackFace() {
+            const video = document.querySelector( "video" );
+            const faces = await model.estimateFaces( {
+                input: video,
+                returnTensors: false,
+                flipHorizontal: false,
+            });
+            output.drawImage(
+                video,
+                0, 0, video.width, video.height,
+                0, 0, video.width, video.height
+            );
+            let hatImage = document.getElementById( `hat-${currentEmotion}` );
+            output.save();
+            output.translate( -hatImage.width, -hatImage.height );
+            output.translate( hat.position.x, hat.position.y );
+            output.drawImage(
+                hatImage,
+                0, 0, hatImage.width, hatImage.height,
+                0, 0, hatImage.width * hat.scale * 2, hatImage.height * hat.scale * 2
+            );
+            output.restore();
+
+            let points = null;
+            faces.forEach( face => {
+                const x1 = face.boundingBox.topLeft[ 0 ];
+                const y1 = face.boundingBox.topLeft[ 1 ];
+                const x2 = face.boundingBox.bottomRight[ 0 ];
+                const y2 = face.boundingBox.bottomRight[ 1 ];
+                const bWidth = x2 - x1;
+                const bHeight = y2 - y1;
+
+                // Add just the nose, cheeks, eyes, eyebrows & mouth
+                const features = [
+                    "noseTip",
+                    "leftCheek",
+                    "rightCheek",
+                    "leftEyeLower1", "leftEyeUpper1",
+                    "rightEyeLower1", "rightEyeUpper1",
+                    "leftEyebrowLower", //"leftEyebrowUpper",
+                    "rightEyebrowLower", //"rightEyebrowUpper",
+                    "lipsLowerInner", //"lipsLowerOuter",
+                    "lipsUpperInner", //"lipsUpperOuter",
+                ];
+                points = [];
+                features.forEach( feature => {
+                    face.annotations[ feature ].forEach( x => {
+                        points.push( ( x[ 0 ] - x1 ) / bWidth );
+                        points.push( ( x[ 1 ] - y1 ) / bHeight );
+                    });
+                });
+
+                const eyeDist = Math.sqrt(
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 0 ] - face.annotations.rightEyeUpper1[ 3 ][ 0 ] ) ** 2 +
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 1 ] - face.annotations.rightEyeUpper1[ 3 ][ 1 ] ) ** 2 +
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 2 ] - face.annotations.rightEyeUpper1[ 3 ][ 2 ] ) ** 2
+                );
+                const faceScale = eyeDist / 80;
+                let upX = face.annotations.midwayBetweenEyes[ 0 ][ 0 ] - face.annotations.noseBottom[ 0 ][ 0 ];
+                let upY = face.annotations.midwayBetweenEyes[ 0 ][ 1 ] - face.annotations.noseBottom[ 0 ][ 1 ];
+                const length = Math.sqrt( upX ** 2 + upY ** 2 );
+                upX /= length;
+                upY /= length;
+
+                hat = {
+                    scale: faceScale,
+                    position: {
+                        x: face.annotations.midwayBetweenEyes[ 0 ][ 0 ] + upX * 130 * faceScale,
+                        y: face.annotations.midwayBetweenEyes[ 0 ][ 1 ] + upY * 130 * faceScale,
+                    }
+                };
+            });
+
+            if( points ) {
+                let emotion = await predictEmotion( points );
+                setText( `Detected: ${emotion}` );
+                currentEmotion = emotion;
+            }
+            else {
+                setText( "No Face" );
+            }
+
+            requestAnimationFrame( trackFace );
+        }
+
+        (async () => {
+            await setupWebcam();
+            const video = document.getElementById( "webcam" );
+            video.play();
+            let videoWidth = video.videoWidth;
+            let videoHeight = video.videoHeight;
+            video.width = videoWidth;
+            video.height = videoHeight;
+
+            let canvas = document.getElementById( "output" );
+            canvas.width = video.width;
+            canvas.height = video.height;
+
+            output = canvas.getContext( "2d" );
+            output.translate( canvas.width, 0 );
+            output.scale( -1, 1 ); // Mirror cam
+            output.fillStyle = "#fdffb6";
+            output.strokeStyle = "#fdffb6";
+            output.lineWidth = 2;
+
+            // Load Face Landmarks Detection
+            model = await faceLandmarksDetection.load(
+                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+            );
+            // Load Emotion Detection
+            emotionModel = await tf.loadLayersModel( 'web/model/facemo.json' );
+
+            setText( "Loaded!" );
+
+            trackFace();
+        })();
+        </script>
+    </body>
+</html>

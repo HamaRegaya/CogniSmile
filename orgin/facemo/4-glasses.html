@@ -1,0 +1,199 @@
+<html>
+    <head>
+        <title>Creating a Snapchat-Style Virtual Glasses Face Filter</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0/dist/tf.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.123.0/build/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.123.0/examples/js/loaders/GLTFLoader.js"></script>
+    </head>
+    <style>
+        .canvas-container {
+            position: relative;
+            width: auto;
+            height: auto;
+        }
+        .canvas-container canvas {
+            position: absolute;
+            left: 0;
+            width: auto;
+            height: auto;
+        }
+    </style>
+    <body>
+        <div class="canvas-container">
+            <canvas id="output"></canvas>
+            <canvas id="overlay"></canvas>
+        </div>
+        <video id="webcam" playsinline style="
+            visibility: hidden;
+            width: auto;
+            height: auto;
+            ">
+        </video>
+        <h1 id="status">Loading...</h1>
+        <script>
+        function setText( text ) {
+            document.getElementById( "status" ).innerText = text;
+        }
+
+        function drawLine( ctx, x1, y1, x2, y2 ) {
+            ctx.beginPath();
+            ctx.moveTo( x1, y1 );
+            ctx.lineTo( x2, y2 );
+            ctx.stroke();
+        }
+
+        async function setupWebcam() {
+            return new Promise( ( resolve, reject ) => {
+                const webcamElement = document.getElementById( "webcam" );
+                const navigatorAny = navigator;
+                navigator.getUserMedia = navigator.getUserMedia ||
+                navigatorAny.webkitGetUserMedia || navigatorAny.mozGetUserMedia ||
+                navigatorAny.msGetUserMedia;
+                if( navigator.getUserMedia ) {
+                    navigator.getUserMedia( { video: true },
+                        stream => {
+                            webcamElement.srcObject = stream;
+                            webcamElement.addEventListener( "loadeddata", resolve, false );
+                        },
+                    error => reject());
+                }
+                else {
+                    reject();
+                }
+            });
+        }
+
+        let output = null;
+        let model = null;
+        let renderer = null;
+        let scene = null;
+        let camera = null;
+        let glasses = null;
+
+        function loadModel( file ) {
+            return new Promise( ( res, rej ) => {
+                const loader = new THREE.GLTFLoader();
+                loader.load( file, function ( gltf ) {
+                    res( gltf.scene );
+                }, undefined, function ( error ) {
+                    rej( error );
+                } );
+            });
+        }
+
+        async function trackFace() {
+            const video = document.querySelector( "video" );
+            output.drawImage(
+                video,
+                0, 0, video.width, video.height,
+                0, 0, video.width, video.height
+            );
+            renderer.render( scene, camera );
+
+            const faces = await model.estimateFaces( {
+                input: video,
+                returnTensors: false,
+                flipHorizontal: false,
+            });
+
+            faces.forEach( face => {
+                // Draw the bounding box
+                const x1 = face.boundingBox.topLeft[ 0 ];
+                const y1 = face.boundingBox.topLeft[ 1 ];
+                const x2 = face.boundingBox.bottomRight[ 0 ];
+                const y2 = face.boundingBox.bottomRight[ 1 ];
+                const bWidth = x2 - x1;
+                const bHeight = y2 - y1;
+                drawLine( output, x1, y1, x2, y1 );
+                drawLine( output, x2, y1, x2, y2 );
+                drawLine( output, x1, y2, x2, y2 );
+                drawLine( output, x1, y1, x1, y2 );
+
+                glasses.position.x = face.annotations.midwayBetweenEyes[ 0 ][ 0 ];
+                glasses.position.y = -face.annotations.midwayBetweenEyes[ 0 ][ 1 ];
+                glasses.position.z = -camera.position.z + face.annotations.midwayBetweenEyes[ 0 ][ 2 ];
+
+                // Calculate an Up-Vector using the eyes position and the bottom of the nose
+                glasses.up.x = face.annotations.midwayBetweenEyes[ 0 ][ 0 ] - face.annotations.noseBottom[ 0 ][ 0 ];
+                glasses.up.y = -( face.annotations.midwayBetweenEyes[ 0 ][ 1 ] - face.annotations.noseBottom[ 0 ][ 1 ] );
+                glasses.up.z = face.annotations.midwayBetweenEyes[ 0 ][ 2 ] - face.annotations.noseBottom[ 0 ][ 2 ];
+                const length = Math.sqrt( glasses.up.x ** 2 + glasses.up.y ** 2 + glasses.up.z ** 2 );
+                glasses.up.x /= length;
+                glasses.up.y /= length;
+                glasses.up.z /= length;
+
+                // Scale to the size of the head
+                const eyeDist = Math.sqrt(
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 0 ] - face.annotations.rightEyeUpper1[ 3 ][ 0 ] ) ** 2 +
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 1 ] - face.annotations.rightEyeUpper1[ 3 ][ 1 ] ) ** 2 +
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 2 ] - face.annotations.rightEyeUpper1[ 3 ][ 2 ] ) ** 2
+                );
+                glasses.scale.x = eyeDist / 6;
+                glasses.scale.y = eyeDist / 6;
+                glasses.scale.z = eyeDist / 6;
+
+                glasses.rotation.y = Math.PI;
+                glasses.rotation.z = Math.PI / 2 - Math.acos( glasses.up.x );
+            });
+
+            requestAnimationFrame( trackFace );
+        }
+
+        (async () => {
+            await setupWebcam();
+            const video = document.getElementById( "webcam" );
+            video.play();
+            let videoWidth = video.videoWidth;
+            let videoHeight = video.videoHeight;
+            video.width = videoWidth;
+            video.height = videoHeight;
+
+            let canvas = document.getElementById( "output" );
+            canvas.width = video.width;
+            canvas.height = video.height;
+
+            let overlay = document.getElementById( "overlay" );
+            overlay.width = video.width;
+            overlay.height = video.height;
+
+            output = canvas.getContext( "2d" );
+            output.translate( canvas.width, 0 );
+            output.scale( -1, 1 ); // Mirror cam
+            output.fillStyle = "#fdffb6";
+            output.strokeStyle = "#fdffb6";
+            output.lineWidth = 2;
+
+            // Load Face Landmarks Detection
+            model = await faceLandmarksDetection.load(
+                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+            );
+
+            renderer = new THREE.WebGLRenderer({
+                canvas: document.getElementById( "overlay" ),
+                alpha: true
+            });
+
+            camera = new THREE.PerspectiveCamera( 45, 1, 0.1, 2000 );
+            camera.position.x = videoWidth / 2;
+            camera.position.y = -videoHeight / 2;
+            camera.position.z = -( videoHeight / 2 ) / Math.tan( 45 / 2 ); // distance to z should be tan( fov / 2 )
+
+            scene = new THREE.Scene();
+            scene.add( new THREE.AmbientLight( 0xcccccc, 0.4 ) );
+            camera.add( new THREE.PointLight( 0xffffff, 0.8 ) );
+            scene.add( camera );
+
+            camera.lookAt( { x: videoWidth / 2, y: -videoHeight / 2, z: 0, isVector3: true } );
+
+            // Glasses from https://sketchfab.com/3d-models/heart-glasses-ef812c7e7dc14f6b8783ccb516b3495c
+            glasses = await loadModel( "web/3d/heart_glasses.gltf" );
+            scene.add( glasses );
+
+            setText( "Loaded!" );
+
+            trackFace();
+        })();
+        </script>
+    </body>
+</html>

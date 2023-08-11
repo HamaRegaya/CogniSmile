@@ -1,0 +1,43 @@
+{
+  "name": "tensorflowjs-facefilters",
+  "version": "1.0.0",
+  "description": "Examples for Face Tracking in a Web Browser using TensorFlow.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/instafluff/TensorFlowJS-FaceFilters.git"
+  },
+  "keywords": [
+    "Instafluff",
+    "TensorFlow",
+    "JS",
+    "Face",
+    "Filter",
+    "JavaScript",
+    "AI",
+    "Deep",
+    "Learning",
+    "ML",
+    "Machine",
+    "Leaning",
+    "Neural",
+    "Networks"
+  ],
+  "author": "Instafluff",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/instafluff/TensorFlowJS-FaceFilters/issues"
+  },
+  "homepage": "https://github.com/instafluff/TensorFlowJS-FaceFilters#readme",
+  "dependencies": {
+    "webwebweb": "^1.4.0"
+  },
+  "nodemonConfig": {
+    "ignore": [
+      "web/fer2013"
+    ]
+  }
+}

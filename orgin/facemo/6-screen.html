@@ -1,0 +1,140 @@
+<html>
+    <head>
+        <title>Tracking Faces in the Browser with TensorFlow.js</title>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0/dist/tf.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/party-js@1.0.0/party.min.js"></script>
+    </head>
+    <body>
+        <canvas id="output"></canvas>
+        <video id="webcam" playsinline style="
+            visibility: hidden;
+            width: auto;
+            height: auto;
+            ">
+        </video>
+        <h1 id="status">Loading...</h1>
+        <script>
+        function setText( text ) {
+            document.getElementById( "status" ).innerText = text;
+        }
+
+        async function setupWebcam() {
+            return new Promise( ( resolve, reject ) => {
+                const webcamElement = document.getElementById( "webcam" );
+                const navigatorAny = navigator;
+                navigator.getUserMedia = navigator.getUserMedia ||
+                navigatorAny.webkitGetUserMedia || navigatorAny.mozGetUserMedia ||
+                navigatorAny.msGetUserMedia;
+                if( navigator.getUserMedia ) {
+                    navigator.getUserMedia( { video: true },
+                        stream => {
+                            webcamElement.srcObject = stream;
+                            webcamElement.addEventListener( "loadeddata", resolve, false );
+                        },
+                    error => reject());
+                }
+                else {
+                    reject();
+                }
+            });
+        }
+
+        let output = null;
+        let model = null;
+        let didParty = false;
+
+        async function trackFace() {
+            const video = document.getElementById( "webcam" );
+            const faces = await model.estimateFaces( {
+                input: video,
+                returnTensors: false,
+                flipHorizontal: false,
+            });
+            output.drawImage(
+                video,
+                0, 0, video.width, video.height,
+                0, 0, video.width, video.height
+            );
+
+            let areEyesClosed = false, isMouthOpen = false;
+            faces.forEach( face => {
+                const eyeDist = Math.sqrt(
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 0 ] - face.annotations.rightEyeUpper1[ 3 ][ 0 ] ) ** 2 +
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 1 ] - face.annotations.rightEyeUpper1[ 3 ][ 1 ] ) ** 2 +
+                    ( face.annotations.leftEyeUpper1[ 3 ][ 2 ] - face.annotations.rightEyeUpper1[ 3 ][ 2 ] ) ** 2
+                );
+                const faceScale = eyeDist / 80;
+
+                // Check for eyes closed
+                const leftEyesDist = Math.sqrt(
+                    ( face.annotations.leftEyeLower1[ 4 ][ 0 ] - face.annotations.leftEyeUpper1[ 4 ][ 0 ] ) ** 2 +
+                    ( face.annotations.leftEyeLower1[ 4 ][ 1 ] - face.annotations.leftEyeUpper1[ 4 ][ 1 ] ) ** 2 +
+                    ( face.annotations.leftEyeLower1[ 4 ][ 2 ] - face.annotations.leftEyeUpper1[ 4 ][ 2 ] ) ** 2
+                );
+                const rightEyesDist = Math.sqrt(
+                    ( face.annotations.rightEyeLower1[ 4 ][ 0 ] - face.annotations.rightEyeUpper1[ 4 ][ 0 ] ) ** 2 +
+                    ( face.annotations.rightEyeLower1[ 4 ][ 1 ] - face.annotations.rightEyeUpper1[ 4 ][ 1 ] ) ** 2 +
+                    ( face.annotations.rightEyeLower1[ 4 ][ 2 ] - face.annotations.rightEyeUpper1[ 4 ][ 2 ] ) ** 2
+                );
+                if( leftEyesDist / faceScale < 23.5 ) {
+                    areEyesClosed = true;
+                }
+                if( rightEyesDist / faceScale < 23.5 ) {
+                    areEyesClosed = true;
+                }
+
+                // Check for mouth open
+                const lipsDist = Math.sqrt(
+                    ( face.annotations.lipsLowerInner[ 5 ][ 0 ] - face.annotations.lipsUpperInner[ 5 ][ 0 ] ) ** 2 +
+                    ( face.annotations.lipsLowerInner[ 5 ][ 1 ] - face.annotations.lipsUpperInner[ 5 ][ 1 ] ) ** 2 +
+                    ( face.annotations.lipsLowerInner[ 5 ][ 2 ] - face.annotations.lipsUpperInner[ 5 ][ 2 ] ) ** 2
+                );
+                // Scale to the relative face size
+                if( lipsDist / faceScale > 20 ) {
+                    isMouthOpen = true;
+                }
+            });
+
+            if( !didParty && ( areEyesClosed || isMouthOpen ) ) {
+                party.screen();
+            }
+            didParty = areEyesClosed || isMouthOpen;
+
+            setText( `Eyes: ${areEyesClosed} Mouth: ${isMouthOpen}` );
+
+            requestAnimationFrame( trackFace );
+        }
+
+        (async () => {
+            await setupWebcam();
+            const video = document.getElementById( "webcam" );
+            video.play();
+            let videoWidth = video.videoWidth;
+            let videoHeight = video.videoHeight;
+            video.width = videoWidth;
+            video.height = videoHeight;
+
+            let canvas = document.getElementById( "output" );
+            canvas.width = video.width;
+            canvas.height = video.height;
+
+            output = canvas.getContext( "2d" );
+            output.translate( canvas.width, 0 );
+            output.scale( -1, 1 ); // Mirror cam
+            output.fillStyle = "#fdffb6";
+            output.strokeStyle = "#fdffb6";
+            output.lineWidth = 2;
+
+            // Load Face Landmarks Detection
+            model = await faceLandmarksDetection.load(
+                faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+            );
+
+            setText( "Loaded!" );
+
+            trackFace();
+        })();
+        </script>
+    </body>
+</html>
